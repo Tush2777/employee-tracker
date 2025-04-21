@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Share Your Location</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        button {
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Share Your Location</h1>
+    <p>Please tap the button below to share your current location with your manager.</p>
+    
+    <button id="shareBtn">Share Location</button>
+    <p id="status" class="status"></p>
+
+    <script>
+        const shareBtn = document.getElementById('shareBtn');
+        const statusEl = document.getElementById('status');
+        
+        // Get employee ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const employeeId = urlParams.get('emp');
+        
+        shareBtn.addEventListener('click', () => {
+            shareBtn.disabled = true;
+            statusEl.textContent = "Getting your location...";
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        sendLocation(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        statusEl.textContent = "Error getting location: " + error.message;
+                        shareBtn.disabled = false;
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                statusEl.textContent = "Geolocation is not supported by your browser.";
+                shareBtn.disabled = false;
+            }
+        });
+        
+        function sendLocation(lat, lng) {
+            statusEl.textContent = "Sending location...";
+            
+            // Telegram bot API endpoint with YOUR credentials
+            const botToken = '7229958690:AAEM4qFYes8oRufz2FqIJBMxfCm8XH7KQqo';
+            const chatId = '6395641632'; // Your personal Telegram chat ID
+            
+            // Format the message
+            const message = `📍 Employee Location Update:\n\nID: ${employeeId || 'Unknown'}\nLat: ${lat}\nLng: ${lng}\n\n🌐 Map: https://www.google.com/maps?q=${lat},${lng}`;
+            
+            // Send to Telegram bot
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusEl.textContent = "Location shared successfully!";
+                shareBtn.disabled = false;
+            })
+            .catch(error => {
+                statusEl.textContent = "Error sending location. Please try again.";
+                shareBtn.disabled = false;
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
